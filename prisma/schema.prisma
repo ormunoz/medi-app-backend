@@ -1,0 +1,57 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator Client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model personal_informations {
+    id        Int        @id @default(autoincrement())
+    name      String
+    last_name String
+    client    patients[]
+    user      admins[]
+}
+
+model patients {
+    id                      Int                   @id @default(autoincrement())
+    email                   String                @unique
+    city                    String                @db.VarChar(100)
+    role                    Role                  @default(value: PACIENTE)
+    personal_information_id Int
+    personal_information    personal_informations @relation(fields: [personal_information_id], references: [id])
+}
+
+model admins {
+    id                      Int                   @id @default(autoincrement())
+    user_name               String                @unique
+    especiality             String                @unique
+    password                String
+    role                    Role                  @default(value: ADMIN)
+    personal_information_id Int
+    personal_information    personal_informations @relation(fields: [personal_information_id], references: [id])
+}
+
+model questions {
+    id       Int      @id @default(autoincrement())
+    question String   @unique
+    options  option[]
+}
+
+model option {
+    id          Int       @id @default(autoincrement())
+    text        String    @unique
+    score       Int       @unique
+    question_id Int
+    question    questions @relation(fields: [question_id], references: [id])
+}
+
+enum Role {
+    ADMIN    @map("1")
+    PACIENTE @map("2")
+}
