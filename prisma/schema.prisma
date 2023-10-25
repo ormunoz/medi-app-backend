@@ -1,57 +1,69 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-generator Client {
-    provider = "prisma-client-js"
+generator client {
+  provider = "prisma-client-js"
 }
 
 datasource db {
-    provider = "postgresql"
-    url      = env("DATABASE_URL")
-}
-
-model personal_informations {
-    id        Int        @id @default(autoincrement())
-    name      String
-    last_name String
-    client    patients[]
-    user      admins[]
-}
-
-model patients {
-    id                      Int                   @id @default(autoincrement())
-    email                   String                @unique
-    city                    String                @db.VarChar(100)
-    role                    Role                  @default(value: PACIENTE)
-    personal_information_id Int
-    personal_information    personal_informations @relation(fields: [personal_information_id], references: [id])
-}
-
-model admins {
-    id                      Int                   @id @default(autoincrement())
-    user_name               String                @unique
-    especiality             String                @unique
-    password                String
-    role                    Role                  @default(value: ADMIN)
-    personal_information_id Int
-    personal_information    personal_informations @relation(fields: [personal_information_id], references: [id])
-}
-
-model questions {
-    id       Int      @id @default(autoincrement())
-    question String   @unique
-    options  option[]
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model option {
-    id          Int       @id @default(autoincrement())
-    text        String    @unique
-    score       Int       @unique
-    question_id Int
-    question    questions @relation(fields: [question_id], references: [id])
+  id               Int                @id @default(autoincrement())
+  text             String             @unique
+  score            Int                @unique
+  question_id      Int
+  questions        questions          @relation(fields: [question_id], references: [id])
+  patients_options patients_options[]
+}
+
+model patients {
+  id                  Int                @id @default(autoincrement())
+  email               String             @unique
+  city                String             @db.VarChar(100)
+  admin_id            Int
+  lasT_name           String
+  name                String
+  total_score         Int
+  user_id Int
+  profesional         profesional        @relation(fields: [admin_id], references: [id])
+  user                user               @relation(fields: [user_id], references: [id])
+  patients_options    patients_options[]
+}
+
+model patients_options {
+  id          Int      @id @default(autoincrement())
+  patients_id Int
+  option_id   Int
+  option      option   @relation(fields: [option_id], references: [id])
+  patients    patients @relation(fields: [patients_id], references: [id])
+}
+
+model profesional {
+  id                      Int        @id @default(autoincrement())
+  especiality             String     @unique
+  name                    String
+  last_name               String
+  user_id Int
+  patients                patients[]
+  user                    user       @relation(fields: [user_id], references: [id])
+}
+
+model questions {
+  id       Int      @id @default(autoincrement())
+  question String   @unique
+  option   option[]
+}
+
+model user {
+  id          Int           @id @default(autoincrement())
+  rut         String
+  password    String
+  role        Role
+  patients    patients[]
+  profesional profesional[]
 }
 
 enum Role {
-    ADMIN    @map("1")
-    PACIENTE @map("2")
+  ADMIN @map("1")
+  PATIENTS @map("2")
 }
