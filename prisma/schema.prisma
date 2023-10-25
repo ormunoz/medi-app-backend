@@ -10,24 +10,24 @@ datasource db {
 model option {
   id               Int                @id @default(autoincrement())
   text             String             @unique
-  score            Int                @unique
+  score            Int                
   question_id      Int
   questions        questions          @relation(fields: [question_id], references: [id])
   patients_options patients_options[]
 }
 
 model patients {
-  id                  Int                @id @default(autoincrement())
-  email               String             @unique
-  city                String             @db.VarChar(100)
-  admin_id            Int
-  lasT_name           String
-  name                String
-  total_score         Int
-  user_id Int
-  profesional         profesional        @relation(fields: [admin_id], references: [id])
-  user                user               @relation(fields: [user_id], references: [id])
-  patients_options    patients_options[]
+  id                    Int                @id @default(autoincrement())
+  email                 String             
+  city                  String             @db.VarChar(100)
+  last_name             String
+  name                  String
+  total_score           Int
+  user_id               Int
+  assigned_professional Int?
+  profesional           profesional?         @relation(fields: [assigned_professional], references: [id])
+  user                  user               @relation(fields: [user_id], references: [id])
+  patients_options      patients_options[]
 }
 
 model patients_options {
@@ -39,13 +39,15 @@ model patients_options {
 }
 
 model profesional {
-  id                      Int        @id @default(autoincrement())
-  especiality             String     @unique
-  name                    String
-  last_name               String
-  user_id Int
-  patients                patients[]
-  user                    user       @relation(fields: [user_id], references: [id])
+  id          Int        @id @default(autoincrement())
+  especiality String     @unique
+  name        String
+  last_name   String
+  min_score   Int
+  max_score   Int
+  user_id     Int
+  patients    patients[]
+  user        user       @relation(fields: [user_id], references: [id])
 }
 
 model questions {
@@ -58,12 +60,12 @@ model user {
   id          Int           @id @default(autoincrement())
   rut         String
   password    String
-  role        Role
+  role        Role          @default(value: ADMIN)
   patients    patients[]
   profesional profesional[]
 }
 
 enum Role {
-  ADMIN @map("1")
-  PATIENTS @map("2")
+  ADMIN   @map("1")
+  PATIENT @map("2")
 }
