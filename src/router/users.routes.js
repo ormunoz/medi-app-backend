@@ -5,7 +5,9 @@ const router = express.Router();
 const { controllerUser } = require("../controller/indexController");
 
 // User
-router.get('/all',  controllerUser.getAll);
+router.get('/allUser',  controllerUser.getAll);
 router.post('/one', controllerUser.getUser);
+router.post('/register', controllerUser.useRegister);
+router.delete('/delete/:id', controllerUser.deleteUser);
 
 module.exports = router;
