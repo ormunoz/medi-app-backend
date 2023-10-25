@@ -2,8 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
-// const userRoutes = require('./route/user.routes');
-// const producRoutes = require('./route/product.routes');
+const userRoutes = require('./route/user.routes');
 const bodyParser = require('body-parser');
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -16,9 +15,8 @@ app.use(bodyParser.urlencoded({
     extended: true,
     limit: '50mb'
 }));
-// const url_default = '/api/v1/'
-// app.use(url_default + 'auth/', userRoutes);
-// app.use(url_default + 'product/', producRoutes);
+const url_default = '/api/v1/'
+app.use(url_default + 'auth/', userRoutes);
 
 app.listen(PORT, err => {
     if (err) {
