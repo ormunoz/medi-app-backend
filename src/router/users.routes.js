@@ -5,9 +5,12 @@ const router = express.Router();
 const { controllerUser } = require("../controller/indexController");
 
 // User
+router.post('/login', controllerUser.userlogin);
+router.post('/register', controllerUser.useRegister);
 router.get('/allUser',  controllerUser.getAll);
 router.post('/one', controllerUser.getUser);
-router.post('/register', controllerUser.useRegister);
+// no actualiza correctamente
+router.put('/update/:id',  controllerUser.UpdateUser);
 router.delete('/delete/:id', controllerUser.deleteUser);
 
 module.exports = router;

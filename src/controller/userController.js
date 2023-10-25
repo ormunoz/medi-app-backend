@@ -5,6 +5,45 @@ const { sendOk, badRequest, internalError, sendOk204, permissonDegate } = requir
 const prisma = new PrismaClient()
 require('dotenv').config();
 
+
+// logeo de usuario 
+const userlogin = async (req, res) => {
+  try {
+    const { rut, password } = req.body;
+
+    const user = await prisma.user.findFirst({
+      where: {
+        rut,
+      },
+      include: {
+        profesional: true,
+        patients: true,
+      },
+    });
+
+    if (!user) {
+      return badRequest(res, "No existe el usuario con este rut", rut);
+    }
+
+    const bdPas = user.password;
+    const match = await bcrypt.compare(password, bdPas);
+
+    if (!match) {
+      return badRequest(res, "Contraseña incorrecta", password);
+    }
+
+    const secretKey = process.env.SECRET_TOKEN;
+    const token = jwt.sign(
+      { user_id: user.id, user_rut: user.rut, user_role: user.role }, secretKey, { expiresIn: '3h' }
+    );
+
+    return sendOk(res, "Usuario logeado correctamente", { token, user });
+
+  } catch (error) {
+    return internalError(res, "Error inesperado", error);
+  }
+};
+
 // obtener datos del usuario logeado
 const getUserToken = async (req, res) => {
   try {
@@ -31,14 +70,14 @@ const getUser = async (req, res) => {
     if (!user) {
       return badRequest(res, "no se encontro nigun usuario");
     } else {
-      return sendOk(res, "Usuario agregado correctamente", user);
+      return sendOk(res, "Usuario encontrado correctamente", user);
     }
   } catch (error) {
     return internalError(res, "Error inesperado", error);
   }
 };
 
-
+// trae a todos los usuarios registrados incluyendo los profesionales y los pacientes
 const getAll = async (req, res) => {
   try {
     const allUsers = await prisma.user.findMany({
@@ -55,17 +94,19 @@ const getAll = async (req, res) => {
   }
 };
 
-
+// registra a un usuario 
 const useRegister = async (req, res) => {
-  try {
-    const { email, city, assigned_professional, total_score } = req.body;
-    const { especiality, name, last_name, min_score, max_score } = req.body;
-    const { rut, password, role } = req.body;
+  const { email, city, total_score } = req.body;
+  const { especiality, name, last_name, min_score, max_score } = req.body;
+  const { rut, password, role } = req.body;
+
+  await prisma.$transaction(async (prisma) => {
     const userExist = await prisma.user.findMany({
       where: {
         rut,
       },
     });
+
 
     const especialityExist = await prisma.profesional.findMany({
       where: {
@@ -75,7 +116,7 @@ const useRegister = async (req, res) => {
 
     if (userExist.length > 0) {
       return badRequest(res, "El usuario ya está registrado");
-    } else if (especialityExist.length > 0) {
+    } else if (especialityExist.length > 0 && role == 'ADMIN') {
       return badRequest(res, "La especialidad se encuentra registrada");
     }
 
@@ -90,8 +131,7 @@ const useRegister = async (req, res) => {
     });
 
     if (role === 'ADMIN') {
-      // hay un problema con agregar el min y el max
-      const adminInfo = await prisma.profesional.create({
+      await prisma.profesional.create({
         data: {
           especiality,
           name,
@@ -101,13 +141,23 @@ const useRegister = async (req, res) => {
           user_id: newUser.id,
         },
       });
-    } else if (role === 'PATIENTS') {
-      // se debe crear logica con el score porque segun el score es el assigned_professional
-      const infoExtra = await prisma.patients.create({
+    } else if (role === 'PATIENT') {
+      const assignedProfessional = await prisma.profesional.findFirst({
+        where: {
+          min_score: {
+            lte: total_score,
+          },
+          max_score: {
+            gte: total_score,
+          },
+        },
+      });
+      await prisma.patients.create({
         data: {
           email,
           city,
-          assigned_professional,
+          assigned_professional: assignedProfessional ? assignedProfessional.id : null,
+          name,
           last_name,
           total_score,
           user_id: newUser.id,
@@ -124,11 +174,104 @@ const useRegister = async (req, res) => {
       rut: newUser.rut,
       role: newUser.role,
     });
+  }).catch((error) => {
+    return internalError(res, "Error inesperado", error);
+  });
+};
+
+// editar usuario no actualiza(revisar)
+const UpdateUser = async (req, res) => {
+  try {
+
+    const id = req.params.id;
+
+    const { email, city, assigned_professional, total_score } = req.body;
+    const { especiality, name, last_name, min_score, max_score } = req.body;
+    const { rut, password, role } = req.body;
+
+    if (!name || !last_name || !rut || !password || !role) return badRequest(res, `debes ingresar todos los campos requeridos`);
+    if (role === 'ADMIN') {
+      if (!especiality || !min_score || !max_score) return badRequest(res, `debes ingresar todos los campos requeridos`);
+    } else {
+      if (!email || !city) return badRequest(res, `debes ingresar todos los campos requeridos`);
+    }
+
+    const user = await prisma.user.findUnique({
+      where: {
+        id: parseInt(id),
+      },
+      include: {
+        profesional: true,
+        patients: true,
+      },
+    });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const userRole = user.role;
+    // let updateInfo;
+    // const updateUser = await prisma.user.update({
+    //   where: {
+    //     id: parseInt(id),
+    //   },
+    //   data: {
+    //     rut, password, role
+    //   },
+    // })
+
+    // if (userRole === 'ADMIN') {
+    //   const updateInfo = await prisma.profesional.update({
+    //     where: {
+    //       email: 'viola@prisma.io',
+    //     },
+    //     data: {
+    //       name: 'Viola the Magnificent',
+    //     },
+    //   })
+
+    // } else {
+    //   updateInfo = await prisma.patients.update({
+    //     where: {
+    //       user_id: parseInt(id),
+    //     },
+    //     data: {
+    //       email, city, assigned_professional, total_score, name, last_name
+    //     },
+    //   });
+
+    // }
+    // const transaction = await prisma.$transaction([updateUser, updateInfo]);
+
+    await prisma.$transaction([
+      prisma.user.update({
+        where: {
+          id: parseInt(id),
+        },
+        data: { rut, password, role },
+      }),
+      userRole === "ADMIN"
+        ? prisma.profesional.update({
+          where: {
+            user_id: parseInt(user.id),
+          },
+          data: { especiality, name, last_name, min_score, max_score },
+        })
+        : prisma.patients.update({
+          where: {
+            user_id: parseInt(user.id),
+          },
+          data: { email, city, assigned_professional, total_score, name, last_name },
+        }),
+    ]);
+
+    return sendOk(res, "Registro Actualizado Correctamente", req.body);
+
   } catch (error) {
     return internalError(res, "Error inesperado", error);
   }
 };
 
+// elimina a uyn usuario 
 const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
@@ -146,28 +289,31 @@ const deleteUser = async (req, res) => {
       return res.status(404).json({ message: 'Usuario no encontrado.' });
     }
 
-    const userRole = user.role; // Obtener el rol del usuario
+    const userRole = user.role;
+    let deleteInfo;
 
-    await prisma.$transaction([
-      prisma.user.delete({
+    if (userRole === 'ADMIN') {
+      deleteInfo = prisma.profesional.deleteMany({
         where: {
-          id: parseInt(id),
+          user_id: parseInt(id),
         },
-      }),
-      // Verificar el rol del usuario y eliminar la entidad correspondiente
-      userRole === "ADMIN"
-        ? prisma.profesional.delete({
-          where: {
-            user_id: parseInt(user.id),
-          },
-        })
-        : prisma.patients.delete({
-          where: {
-            user_id: parseInt(user.id),
-          },
-        }),
-    ]);
+      });
+    } else {
+      deleteInfo = prisma.patients.deleteMany({
+        where: {
+          user_id: parseInt(id),
+        },
+      });
+
+    }
+
+    const deleteUser = prisma.user.delete({
+      where: {
+        id: parseInt(id),
+      },
+    });
     
+    const transaction = await prisma.$transaction([deleteInfo, deleteUser]);
     sendOk204(res, "Usuario Eliminado Correctamente");
 
   } catch (error) {
@@ -176,10 +322,13 @@ const deleteUser = async (req, res) => {
 };
 
 
+
 module.exports = {
   getUserToken,
   getUser,
   getAll,
   useRegister,
-  deleteUser
+  deleteUser,
+  userlogin,
+  UpdateUser
 };
