@@ -3,6 +3,7 @@ const express = require('express');
 const path = require('path');
 const cors = require('cors');
 const userRoutes = require('./router/users.routes');
+const questionRoutes = require('./router/questionsOptions.routes');
 const bodyParser = require('body-parser');
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -17,6 +18,7 @@ app.use(bodyParser.urlencoded({
 }));
 const url_default = '/api/v1/'
 app.use(url_default + 'auth/', userRoutes);
+app.use(url_default + 'question/', questionRoutes);
 
 app.listen(PORT, err => {
     if (err) {
