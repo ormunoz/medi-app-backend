@@ -6,7 +6,7 @@ const { controllerQuestion } = require("../controller/indexController");
 
 
 // User
-router.get('/all', [validarToken, validarUser], controllerQuestion.getAll);
+router.get('/all', controllerQuestion.getAll);
 router.post('/one', [validarToken, validarUser], controllerQuestion.getQuestion);
 router.post('/register_option', [validarToken, validarUser], controllerQuestion.createOption);
 router.post('/register_question', [validarToken, validarUser], controllerQuestion.createQuestion);

@@ -14,10 +14,9 @@ const validarUser = (req, res, next) => {
         }
 
         const { user_role } = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-        if (user_role !== "ADMIN" || user_role !== "PATIENT"  ) {
+        if (user_role !== "ADMIN" && user_role !== "PATIENT") {
             return http.badRequest(res, 'Acceso denegado', [], 403);
         }
-
         next();
     } catch (error) {
         return http.internalError(res, "Error interno", error.message);

@@ -52,7 +52,6 @@ const userLogout = async (req, res) => {
   }
 };
 
-
 // obtener datos del usuario logeado
 const getUserToken = async (req, res) => {
   try {
