@@ -1,9 +1,9 @@
 
-const sendOk = (res, message, result, code = 200) => {
+const sendOk = (res, message, data, code = 200) => {
     return res.status(code).json({
         status: true,
         message,
-        data: result,
+        data,
     });
 }
 

@@ -8,9 +8,10 @@ datasource db {
 }
 
 model option {
-  id               Int                @id @default(autoincrement())
-  text             String             @unique
-  score            Int                
+  id     Int    @id @default(autoincrement())
+  text   String
+  score  Int
+  indice Int    
   question_id      Int
   questions        questions          @relation(fields: [question_id], references: [id])
   patients_options patients_options[]
@@ -18,14 +19,14 @@ model option {
 
 model patients {
   id                    Int                @id @default(autoincrement())
-  email                 String             
+  email                 String
   city                  String             @db.VarChar(100)
   last_name             String
   name                  String
   total_score           Int
   user_id               Int
   assigned_professional Int?
-  profesional           profesional?         @relation(fields: [assigned_professional], references: [id])
+  profesional           profesional?       @relation(fields: [assigned_professional], references: [id])
   user                  user               @relation(fields: [user_id], references: [id])
   patients_options      patients_options[]
 }
@@ -52,6 +53,7 @@ model profesional {
 
 model questions {
   id       Int      @id @default(autoincrement())
+  indice   Int      
   question String   @unique
   option   option[]
 }
