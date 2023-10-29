@@ -1,13 +1,12 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require("bcrypt");
 const jwt = require('jsonwebtoken');
-const { sendOk, badRequest, internalError, sendOk204, permissonDegate } = require("../helpers/http");
-const prisma = new PrismaClient()
+const { sendOk, badRequest, internalError, sendOk204, permissionDenied } = require("../helpers/http");
+const prisma = new PrismaClient();
 require('dotenv').config();
 
-
-// logeo de usuario 
-const userlogin = async (req, res) => {
+// User login
+const userLogin = async (req, res) => {
   try {
     const { rut, password } = req.body;
     const user = await prisma.user.findFirst({
@@ -21,14 +20,14 @@ const userlogin = async (req, res) => {
     });
 
     if (!user) {
-      return badRequest(res, "No existe el usuario con este rut", rut);
+      return badRequest(res, "User with this rut does not exist", rut);
     }
 
-    const bdPas = user.password;
-    const match = await bcrypt.compare(password, bdPas);
+    const hashedPassword = user.password;
+    const match = await bcrypt.compare(password, hashedPassword);
 
     if (!match) {
-      return badRequest(res, "Contraseña incorrecta", password);
+      return badRequest(res, "Incorrect password", password);
     }
 
     const secretKey = process.env.SECRET_TOKEN;
@@ -36,10 +35,9 @@ const userlogin = async (req, res) => {
       { user_id: user.id, user_rut: user.rut, user_role: user.role }, secretKey, { expiresIn: '3h' }
     );
 
-    return sendOk(res, "Usuario logeado correctamente", { token, user });
-
+    return sendOk(res, "User logged in successfully", { token, user });
   } catch (error) {
-    return internalError(res, "Error inesperado", error);
+    return internalError(res, "Unexpected error", error);
   }
 };
 
@@ -52,16 +50,16 @@ const userLogout = async (req, res) => {
   }
 };
 
-// obtener datos del usuario logeado
+// Get data of the logged-in user
 const getUserToken = async (req, res) => {
   try {
-    return sendOk(res, "Usuario validado correctamente")
+    return sendOk(res, "User validated successfully");
   } catch (error) {
-    return internalError(res, "Error inesperado", error);
+    return internalError(res, "Unexpected error", error);
   }
 };
 
-// trae a un usuario en especifico
+// Retrieve a specific user
 const getUser = async (req, res) => {
   try {
     const { id } = req.body;
@@ -76,110 +74,105 @@ const getUser = async (req, res) => {
             profesional: true,
           },
         },
-      },
+      }
     });
 
-
     if (!user) {
-      return badRequest(res, "no se encontro nigun usuario");
+      return badRequest(res, "User not found");
     } else {
-      return sendOk(res, "Usuario encontrado correctamente", user);
+      return sendOk(res, "User found successfully", user);
     }
   } catch (error) {
-    return internalError(res, "Error inesperado", error);
+    return internalError(res, "Unexpected error", error);
   }
 };
 
-// trae a todos los usuarios registrados incluyendo los profesionales y los pacientes
+// Retrieve all registered users, including professionals and patients
 const getAll = async (req, res) => {
   try {
     const allUsers = await prisma.user.findMany({
       include: {
         profesional: true,
         patients: true,
-      }
+      },
     });
 
-    return sendOk(res, "Usuario Encontrados", allUsers);
-
+    return sendOk(res, "Users found", allUsers);
   } catch (error) {
     res.json({ message: error.message });
   }
 };
 
-// obtiene todos los pacientes asociados a un profesional
+// Get all patients associated with a professional
 const getPatient = async (req, res) => {
   try {
     const allUsers = await prisma.patients.findMany({
       include: {
         profesional: true,
         user: true,
-      }
+      },
     });
 
-    return sendOk(res, "Usuario Encontrados", allUsers);
-
+    return sendOk(res, "Users found", allUsers);
   } catch (error) {
     res.json({ message: error.message });
   }
 };
 
-// obtiene todos los profesional
-const getProfesional = async (req, res) => {
+// Get all professionals
+const getProfessional = async (req, res) => {
   try {
     const allUsers = await prisma.profesional.findMany({
       include: {
         user: true,
-      }
+      },
     });
 
-    return sendOk(res, "Usuario Encontrados", allUsers);
-
+    return sendOk(res, "Users found", allUsers);
   } catch (error) {
     res.json({ message: error.message });
   }
 };
-// registra a un usuario 
-const useRegister = async (req, res) => {
+
+// Register a user
+const userRegister = async (req, res) => {
   const { email, city, total_score, option } = req.body;
   const { especiality, name, last_name, min_score, max_score } = req.body;
   const { rut, password, role } = req.body;
 
-  if (!name || !last_name || !rut || !role) return badRequest(res, `debes ingresar todos los campos requeridos`);
+  if (!name || !last_name || !rut || !role) return badRequest(res, `You must fill in all required fields`);
   if (role === 'ADMIN') {
-    if (!especiality || !min_score || !max_score) return badRequest(res, `debes ingresar todos los campos requeridos`);
+    if (!especiality || !min_score || !max_score) return badRequest(res, `You must fill in all required fields`);
   } else {
-    if (!email || !city) return badRequest(res, `debes ingresar todos los campos requeridos`);
+    if (!email || !city) return badRequest(res, `You must fill in all required fields`);
   }
 
-
   await prisma.$transaction(async (prisma) => {
-    const userExist = await prisma.user.findMany({
+    const userExists = await prisma.user.findMany({
       where: {
         rut,
       },
     });
 
-
-    const especialityExist = await prisma.profesional.findMany({
+    const especialityExists = await prisma.profesional.findMany({
       where: {
         especiality,
       },
     });
 
-    if (userExist.length > 0) {
-      return badRequest(res, "El usuario ya está registrado");
-    } else if (especialityExist.length > 0 && role == 'ADMIN') {
-      return badRequest(res, "La especialidad se encuentra registrada");
+    if (userExists.length > 0) {
+      return badRequest(res, "The user is already registered");
+    } else if (especialityExists.length > 0 && role === 'ADMIN') {
+      return badRequest(res, "The specialty is already registered");
     }
 
-    const contrasenaHasheada = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = await prisma.user.create({
       data: {
         rut,
         role,
-        password: contrasenaHasheada,
+        password: hashedPassword,
       },
     });
 
@@ -226,38 +219,35 @@ const useRegister = async (req, res) => {
           },
         });
       }
-
     }
 
     if (!newUser) {
-      return badRequest(res, "El usuario no fue agregado", { newUser });
+      return badRequest(res, "The user was not added", { newUser });
     }
 
-    return sendOk(res, "Usuario agregado correctamente", {
+    return sendOk(res, "User added successfully", {
       _id: newUser.id,
       rut: newUser.rut,
       role: newUser.role,
     });
   }).catch((error) => {
-    return internalError(res, "Error inesperado", error);
+    return internalError(res, "Unexpected error", error);
   });
 };
 
-// editar usuario no actualiza(revisar)
-const UpdateUser = async (req, res) => {
+// Update a user (not updating, check)
+const updateUser = async (req, res) => {
   try {
-
     const id = req.params.id;
-
     const { email, city, assigned_professional, total_score } = req.body;
     const { especiality, name, last_name, min_score, max_score } = req.body;
     const { rut, role, user_id } = req.body;
 
-    if (!name || !last_name || !rut || !role) return badRequest(res, `debes ingresar todos los campos requeridos`);
+    if (!name || !last_name || !rut || !role) return badRequest(res, `You must fill in all required fields`);
     if (role === 'ADMIN') {
-      if (!especiality || !min_score || !max_score) return badRequest(res, `debes ingresar todos los campos requeridos`);
+      if (!especiality || !min_score || !max_score) return badRequest(res, `You must fill in all required fields`);
     } else {
-      if (!email || !city) return badRequest(res, `debes ingresar todos los campos requeridos`);
+      if (!email || !city) return badRequest(res, `You must fill in all required fields`);
     }
 
     let updateInfo;
@@ -267,9 +257,9 @@ const UpdateUser = async (req, res) => {
         id: user_id,
       },
       data: {
-        rut
+        rut,
       },
-    })
+    });
 
     if (role === 'ADMIN') {
       updateInfo = await prisma.profesional.update({
@@ -283,27 +273,25 @@ const UpdateUser = async (req, res) => {
           min_score,
           max_score,
         },
-      })
+      });
     } else {
       updateInfo = await prisma.patients.update({
         where: {
           user_id: parseInt(id),
         },
         data: {
-          email, city, assigned_professional, total_score, name, last_name
+          email, city, assigned_professional, total_score, name, last_name,
         },
       });
-
     }
 
-    return sendOk(res, "Registro Actualizado Correctamente", req.body);
-
+    return sendOk(res, "Record Updated Successfully", req.body);
   } catch (error) {
-    return internalError(res, "Error inesperado", error);
+    return internalError(res, "Unexpected error", error);
   }
 };
 
-// elimina a uyn usuario 
+// Delete a user
 const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
@@ -318,7 +306,7 @@ const deleteUser = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(404).json({ message: 'Usuario no encontrado.' });
+      return res.status(404).json({ message: 'User not found.' });
     }
 
     const userRole = user.role;
@@ -334,9 +322,8 @@ const deleteUser = async (req, res) => {
       deleteInfo = prisma.patients.deleteMany({
         where: {
           user_id: parseInt(id),
-        },
+        }
       });
-
     }
 
     const deleteUser = prisma.user.delete({
@@ -346,16 +333,14 @@ const deleteUser = async (req, res) => {
     });
 
     const transaction = await prisma.$transaction([deleteInfo, deleteUser]);
-    sendOk204(res, "Usuario Eliminado Correctamente");
-
+    sendOk204(res, "User Deleted Successfully");
   } catch (error) {
-    return internalError(res, "Error inesperado", error);
+    return internalError(res, "Unexpected error", error);
   }
 };
-
-const optionPatient = async (req, res) => {
+const optionForPatient = async (req, res) => {
   try {
-    const { id } = req.body
+    const { id } = req.body;
     const optionsForPatient = await prisma.patients_options.findMany({
       where: {
         patients_id: parseInt(id),
@@ -370,10 +355,9 @@ const optionPatient = async (req, res) => {
       },
     });
 
-    return sendOk(res, "pacientes y opciones Encontrado", optionsForPatient);
-
+    return sendOk(res, "Patients and options found", optionsForPatient);
   } catch (error) {
-    return internalError(res, "Error inesperado", error);
+    return internalError(res, "Unexpected error", error);
   }
 };
 
@@ -382,11 +366,11 @@ module.exports = {
   getUser,
   getAll,
   getPatient,
-  getProfesional,
-  useRegister,
+  getProfessional,
+  userRegister,
   deleteUser,
-  userlogin,
+  userLogin,
   userLogout,
-  UpdateUser,
-  optionPatient
+  updateUser,
+  optionForPatient
 };

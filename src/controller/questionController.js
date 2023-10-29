@@ -1,9 +1,9 @@
 const { PrismaClient } = require('@prisma/client');
-const { sendOk, badRequest, internalError, sendOk204, permissonDegate } = require("../helpers/http");
-const prisma = new PrismaClient()
+const { sendOk, badRequest, internalError, sendOk204, permissionDeny } = require("../helpers/http");
+const prisma = new PrismaClient();
 require('dotenv').config();
 
-// obteniendo una pregunta y sus respuestas
+// Fetching a question and its answers
 const getQuestion = async (req, res) => {
     try {
         const { id } = req.body;
@@ -23,17 +23,16 @@ const getQuestion = async (req, res) => {
             },
         });
         if (!getQuestion) {
-            return badRequest(res, "No se encontró ninguna pregunta");
+            return badRequest(res, "No question found");
         } else {
-            return sendOk(res, "Pregunta encontrada correctamente", user);
+            return sendOk(res, "Question found successfully", user);
         }
     } catch (error) {
-        return internalError(res, "Error inesperado", error);
+        return internalError(res, "Unexpected error", error);
     }
 };
 
-
-// trae a todas preguntas y sus opciones asociadas
+// Fetch all questions and their associated options
 const getAll = async (req, res) => {
     try {
         const allQuestions = await prisma.questions.findMany({
@@ -49,19 +48,19 @@ const getAll = async (req, res) => {
             },
         });
 
-        return sendOk(res, "preguntas Encontradas", allQuestions);
+        return sendOk(res, "Questions found", allQuestions);
 
     } catch (error) {
         res.json({ message: error.message });
     }
 };
 
-// Crear una opción una por una asociada a una pregunta
+// Create an option one by one associated with a question
 const createOption = async (req, res) => {
     try {
         const { text, score, question_id, indice } = req.body;
 
-        if (!text || !score || !question_id || !indice) return badRequest(res, "Debes ingresar todos los datos necesarios para crear una opción.");
+        if (!text || !score || !question_id || !indice) return badRequest(res, "You must enter all the necessary data to create an option.");
 
         const optionExist = await prisma.option.findMany({
             where: {
@@ -79,23 +78,22 @@ const createOption = async (req, res) => {
                 },
             });
         } else {
-            return badRequest(res, "esta alternativa ya existe para la pregunta");
+            return badRequest(res, "This option already exists for the question");
         }
 
-
-        return sendOk(res, "Opción creada correctamente");
+        return sendOk(res, "Option created successfully");
 
     } catch (error) {
-        return internalError(res, "Error inesperado al crear la opción", error);
+        return internalError(res, "Unexpected error while creating the option", error);
     }
 };
 
-// Crear una pregunta
+// Create a question
 const createQuestion = async (req, res) => {
     try {
         const { question, indice } = req.body;
 
-        if (!question || !indice) return badRequest(res, "Debes ingresar una pregunta y al menos una opción.");
+        if (!question || !indice) return badRequest(res, "You must enter a question and at least one option.");
 
         const questionExist = await prisma.questions.findMany({
             where: {
@@ -110,23 +108,23 @@ const createQuestion = async (req, res) => {
                 },
             });
         } else {
-            return badRequest(res, "Ya existe esta pregunta");
+            return badRequest(res, "This question already exists");
         }
 
-        return sendOk(res, "Pregunta creada correctamente");
+        return sendOk(res, "Question created successfully");
 
     } catch (error) {
-        return internalError(res, "Error inesperado al crear la pregunta", error);
+        return internalError(res, "Unexpected error while creating the question", error);
     }
 };
 
-// actualizaremos una pregunta
+// Update a question
 const updateQuestion = async (req, res) => {
     try {
         const id = req.params.id;
         const { question, indice } = req.body;
 
-        if (!question || !indice) return badRequest(res, `debes ingresar todos los datos`);
+        if (!question || !indice) return badRequest(res, `You must enter all the data`);
 
         const questionFind = await prisma.questions.findUnique({
             where: {
@@ -135,7 +133,7 @@ const updateQuestion = async (req, res) => {
         });
 
         if (!questionFind) {
-            return res.status(404).json({ message: 'pregunta no encontrada.' });
+            return res.status(404).json({ message: 'Question not found.' });
         }
         const questionExist = await prisma.questions.findMany({
             where: {
@@ -154,25 +152,23 @@ const updateQuestion = async (req, res) => {
                 }),
             ]);
         } else {
-            return badRequest(res, "Ya existe esta pregunta");
+            return badRequest(res, "This question already exists");
         }
 
-
-
-        return sendOk(res, "pregunta Actualizada Correctamente", req.body);
+        return sendOk(res, "Question Updated Successfully", req.body);
 
     } catch (error) {
-        return internalError(res, "Error inesperado", error);
+        return internalError(res, "Unexpected error", error);
     }
 };
 
-// actualizacion de alternativa segun id
+// Update an option by ID
 const updateOption = async (req, res) => {
     try {
         const id = req.params.id;
         const { text, score, indice } = req.body;
 
-        if (!text || !score || !indice) return badRequest(res, `debes ingresar todos los datos`);
+        if (!text || !score || !indice) return badRequest(res, `You must enter all the data`);
 
         const option = await prisma.option.findUnique({
             where: {
@@ -181,7 +177,7 @@ const updateOption = async (req, res) => {
         });
 
         if (!option) {
-            return res.status(404).json({ message: 'respuestas no encontrada.' });
+            return res.status(404).json({ message: 'Option not found.' });
         }
 
         const optionExist = await prisma.option.findMany({
@@ -201,18 +197,17 @@ const updateOption = async (req, res) => {
                 }),
             ]);
         } else {
-            return badRequest(res, "Ya existe esta alternativa");
+            return badRequest(res, "This option already exists");
         }
 
-
-        return sendOk(res, "opcion Actualizada Correctamente", req.body);
+        return sendOk(res, "Option Updated Successfully", req.body);
 
     } catch (error) {
-        return internalError(res, "Error inesperado", error);
+        return internalError(res, "Unexpected error", error);
     }
 };
 
-// eliminamos una pregunta y sus opciones asociadas
+// Delete a question and its associated options
 const deleteQuestion = async (req, res) => {
     try {
         const { id } = req.params;
@@ -223,7 +218,7 @@ const deleteQuestion = async (req, res) => {
         });
 
         if (!question) {
-            return res.status(404).json({ message: 'Pregunta no encontrado.' });
+            return res.status(404).json({ message: 'Question not found.' });
         }
 
         const deleteOption = prisma.option.deleteMany({
@@ -231,7 +226,6 @@ const deleteQuestion = async (req, res) => {
                 question_id: parseInt(id),
             },
         });
-
 
         const deleteQuestion = prisma.questions.delete({
             where: {
@@ -241,27 +235,28 @@ const deleteQuestion = async (req, res) => {
 
         const transaction = await prisma.$transaction([deleteOption, deleteQuestion]);
 
-        sendOk204(res, "Pregunta y respuestas Eliminadas Correctamente");
+        sendOk204(res, "Question and answers deleted successfully");
 
     } catch (error) {
-        return internalError(res, "Error inesperado", error);
+        return internalError(res, "Unexpected error", error);
     }
 };
 
+// Delete an option by ID
 const deleteOption = async (req, res) => {
     try {
         const { id } = req.params;
-        const question = await prisma.option.findUnique({
+        const option = await prisma.option.findUnique({
             where: {
                 id: parseInt(id),
             },
         });
 
-        if (!question) {
-            return res.status(404).json({ message: 'Alternativa no encontrada.' });
+        if (!option) {
+            return res.status(404).json({ message: 'Option not found.' });
         }
 
-        deletePatientsOptions = prisma.patients_options.deleteMany({
+        const deletePatientsOptions = prisma.patients_options.deleteMany({
             where: {
                 option_id: parseInt(id),
             },
@@ -275,10 +270,10 @@ const deleteOption = async (req, res) => {
 
         const transaction = await prisma.$transaction([deleteOption, deletePatientsOptions]);
 
-        sendOk204(res, "Alternativa Eliminada Correctamente");
+        sendOk204(res, "Option deleted successfully");
 
     } catch (error) {
-        return internalError(res, "Error inesperado", error);
+        return internalError(res, "Unexpected error", error);
     }
 };
 
