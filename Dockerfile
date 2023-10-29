@@ -9,6 +9,7 @@ COPY package*.json ./
 
 COPY . .
 
+COPY .env .env
 # Instala las dependencias de tu proyecto
 RUN npm install
 
