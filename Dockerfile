@@ -10,6 +10,7 @@ COPY package*.json ./
 COPY . .
 
 COPY .env .env
+
 # Instala las dependencias de tu proyecto
 RUN npm install
 
@@ -21,9 +22,6 @@ RUN npm install -g prisma
 
 # Genera el modelo Prisma y aplica las migraciones (ajusta el comando según tu configuración)
 RUN prisma generate
-
-# Elimina el directorio node_modules/bcrypt (si es necesario)
-RUN rm -rf node_modules/bcrypt
 
 # Instala las dependencias (en este caso, bcrypt)
 RUN npm install bcrypt
