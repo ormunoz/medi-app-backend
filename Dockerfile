@@ -12,14 +12,19 @@ COPY . .
 # Instala las dependencias de tu proyecto
 RUN npm install
 
+# Instala nodemon de forma global
+RUN npm install -g nodemon
+
 # Instala las herramientas de línea de comandos de Prisma globalmente
 RUN npm install -g prisma
 
 # Genera el modelo Prisma y aplica las migraciones (ajusta el comando según tu configuración)
 RUN prisma generate
 
+# Elimina el directorio node_modules/bcrypt (si es necesario)
 RUN rm -rf node_modules/bcrypt
 
+# Instala las dependencias (en este caso, bcrypt)
 RUN npm install bcrypt
 
 # Expone el puerto en el que se ejecutará tu aplicación (ajusta según tu configuración)
