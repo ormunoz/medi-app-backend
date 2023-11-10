@@ -27,7 +27,9 @@ app.use(bodyParser.urlencoded({
     limit: '50mb'
 }));
 
-app.get("/",(req,res)=>{ console.log("hola mundo")})
+app.get("/", (req, res) => {
+    res.send({ msg: "hola mundo" });
+});
 // Define a default URL prefix for routes
 const url_default = '/api/v1/';
 
