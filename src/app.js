@@ -31,7 +31,7 @@ app.get("/", (req, res) => {
     res.send({ msg: "hola mundo" });
 });
 // Define a default URL prefix for routes
-const url_default = '/api/v1/';
+const url_default = 'api/v1/';
 
 // Attach user-related routes to the application under the 'auth' URL prefix
 app.use(url_default + 'auth/', userRoutes);
